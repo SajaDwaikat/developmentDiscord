@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "../styles/auth.css";
+import toast from "react-hot-toast";
 
 function Login() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ function Login() {
     });
   };
 
- const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
 
   try {
@@ -26,9 +27,6 @@ function Login() {
       "/auth/login",
       formData
     );
-
-    console.log("LOGIN SUCCESS");
-    console.log(res.data);
 
     localStorage.setItem(
       "token",
@@ -40,15 +38,18 @@ function Login() {
       JSON.stringify(res.data.user)
     );
 
+    toast.success(
+      "Login successful"
+    );
+
     navigate("/chat");
   } catch (error) {
     console.log(error);
 
-    alert(
-      error.response?.data?.message ||
-      error.message
+    toast.error(
+      "Invalid credentials"
     );
-  } 
+  }
 };
 
   return (

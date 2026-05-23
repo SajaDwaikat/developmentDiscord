@@ -1,14 +1,33 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  useState,
+  useEffect,
+  useRef,
+} from "react";
+
+import {
+  useNavigate,
+} from "react-router-dom";
+
 import api from "../services/api";
 import socket from "../socket";
+
 import "../styles/chat.css";
+
+import {
+  FaComments,
+  FaDesktop,
+  FaCode,
+} from "react-icons/fa";
+
 function Chat() {
   const navigate = useNavigate();
 
-  const user = JSON.parse(
-    localStorage.getItem("user")
-  );
+  const user =
+    JSON.parse(
+      localStorage.getItem("user")
+    ) || {
+      username: "Guest",
+    };
 
   const [channel, setChannel] =
     useState("General");
@@ -16,78 +35,136 @@ function Chat() {
   const [message, setMessage] =
     useState("");
 
-const [messages, setMessages] =
-  useState([]);
-  const loadMessages = async () => {
-  try {
-    const res = await api.get(
-      `/messages/${channel}`
-    );
+  const [messages, setMessages] =
+    useState([]);
 
-    const formatted =
-      res.data.map((msg) => ({
-        username: msg.sender,
-        text: msg.text,
-      }));
+  const [menuOpen, setMenuOpen] =
+    useState(false);
 
-    setMessages(formatted);
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-  useEffect(() => {
-  loadMessages();
-
-  socket.on(
-    "receive_message",
-    (data) => {
-      if (data.channel === channel) {
-        setMessages((prev) => [
-          ...prev,
-          data,
-        ]);
-      }
-    }
-  );
-
-  
-  return () => {
-    socket.off(
-      "receive_message"
-    );
-  };
-}, [channel]);
+  const messagesEndRef =
+    useRef(null);
 
   const channels = [
-    "General",
-    "React",
-    "NodeJS",
+    {
+      name: "General",
+      icon: <FaComments />,
+    },
+    {
+      name: "OS Course",
+      icon: <FaDesktop />,
+    },
+    {
+      name: "Dev Hub",
+      icon: <FaCode />,
+    },
   ];
 
-const sendMessage = async () => {
-  if (!message.trim()) return;
+  const currentChannel =
+    channels.find(
+      (item) =>
+        item.name === channel
+    );
 
-  const newMessage = {
-    username: user.username,
-    text: message,
-    channel,
-  };
+  const loadMessages =
+    async () => {
+      try {
+        const res =
+          await api.get(
+            `/messages/${channel}`
+          );
 
-  socket.emit("send_message", newMessage);
+        const formatted =
+          res.data.map(
+            (msg) => ({
+              username:
+                msg.sender,
+              text: msg.text,
+              createdAt:
+                msg.createdAt,
+            })
+          );
 
-  try {
-    await api.post("/messages", {
-      sender: user.username,
-      channel,
-      text: message,
-    });
-  } catch (error) {
-    console.error(error);
-  }
+        setMessages(
+          formatted
+        );
+      } catch (error) {
+        console.log(error);
+      }
+    };
 
-  setMessage("");
-};
+  useEffect(() => {
+    loadMessages();
+
+    socket.on(
+      "receive_message",
+      (data) => {
+        if (
+          data.channel ===
+          channel
+        ) {
+          setMessages(
+            (prev) => [
+              ...prev,
+              data,
+            ]
+          );
+        }
+      }
+    );
+
+    return () => {
+      socket.off(
+        "receive_message"
+      );
+    };
+  }, [channel]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView(
+      {
+        behavior:
+          "smooth",
+      }
+    );
+  }, [messages]);
+
+  const sendMessage =
+    async () => {
+      if (
+        !message.trim()
+      )
+        return;
+
+      const newMessage = {
+        username:
+          user.username,
+        text: message,
+        channel,
+        createdAt:
+          new Date(),
+      };
+
+      socket.emit(
+        "send_message",
+        newMessage
+      );
+
+      try {
+        await api.post(
+          "/messages",
+          {
+            sender:
+              user.username,
+            channel,
+            text: message,
+          }
+        );
+      } catch (error) {
+        console.log(error);
+      }
+
+      setMessage("");
+    };
 
   const logout = () => {
     localStorage.clear();
@@ -97,29 +174,91 @@ const sendMessage = async () => {
   return (
     <div className="chat-container">
 
-      <div className="sidebar">
-        <h2>Discord Clone</h2>
-
-        {channels.map((item) => (
-          <div
-            key={item}
-            className={
-              channel === item
-                ? "channel active-channel"
-                : "channel"
-            }
-            onClick={() =>
-              setChannel(item)
-            }
-          >
-            # {item}
+      <div
+        className={
+          menuOpen
+            ? "sidebar sidebar-open"
+            : "sidebar"
+        }
+      >
+        <div className="sidebar-brand">
+          <div className="brand-logo">
+            D
           </div>
-        ))}
 
-        <br />
+          <div>
+            <h2>
+              Discord Clone
+            </h2>
+
+            <p>
+              Real-Time Chat
+            </p>
+          </div>
+        </div>
+
+        {channels.map(
+          (item) => (
+            <div
+              key={
+                item.name
+              }
+              className={
+                channel ===
+                item.name
+                  ? "channel active-channel"
+                  : "channel"
+              }
+              onClick={() => {
+                setChannel(
+                  item.name
+                );
+
+                setMenuOpen(
+                  false
+                );
+              }}
+            >
+              <span className="channel-icon">
+                {
+                  item.icon
+                }
+              </span>
+
+              <span>
+                {
+                  item.name
+                }
+              </span>
+            </div>
+          )
+        )}
+
+        <div className="current-user">
+          <div className="user-avatar">
+            {user.username
+              ?.charAt(0)
+              .toUpperCase()}
+          </div>
+
+          <div className="user-info">
+            <strong>
+              {
+                user.username
+              }
+            </strong>
+
+            <span className="status">
+              ● Online
+            </span>
+          </div>
+        </div>
 
         <button
-          onClick={logout}
+          className="logout-btn"
+          onClick={
+            logout
+          }
         >
           Logout
         </button>
@@ -127,60 +266,144 @@ const sendMessage = async () => {
 
       <div className="chat-section">
 
-        <div className="chat-header">
-          <h3>
-            # {channel}
-          </h3>
-        </div>
+      <div className="chat-header">
+  <h3 className="header-title">
+    <span className="header-icon">
+      {currentChannel?.icon}
+    </span>
+
+    <span>
+      {channel}
+    </span>
+  </h3>
+</div>
 
         <div className="messages">
 
-          {messages.map(
-            (msg, index) => (
-              <div
-                key={index}
-                className="message"
-              >
-                <div className="message-user">
-                  {msg.username}
-                </div>
+          {messages.length ===
+          0 ? (
+            <div className="empty-state">
+              <h3>
+                Welcome to{" "}
+                {
+                  channel
+                }
+              </h3>
 
-                <div>
-                  {msg.text}
+              <p>
+                Start the
+                conversation
+                and send
+                your first
+                message.
+              </p>
+            </div>
+          ) : (
+            messages.map(
+              (
+                msg,
+                index
+              ) => (
+                <div
+                  key={
+                    index
+                  }
+                  className="message"
+                >
+                  <div className="avatar">
+                    {msg.username
+                      ?.charAt(
+                        0
+                      )
+                      .toUpperCase()}
+                  </div>
+
+                  <div className="message-content">
+
+                    <div className="message-header">
+
+                      <span className="message-user">
+                        {
+                          msg.username
+                        }
+                      </span>
+
+                      <span className="message-time">
+                        {msg.createdAt
+                          ? new Date(
+                              msg.createdAt
+                            ).toLocaleTimeString(
+                              [],
+                              {
+                                hour:
+                                  "2-digit",
+                                minute:
+                                  "2-digit",
+                              }
+                            )
+                          : ""}
+                      </span>
+
+                    </div>
+
+                    <div className="message-text">
+                      {
+                        msg.text
+                      }
+                    </div>
+
+                  </div>
                 </div>
-              </div>
+              )
             )
           )}
+
+          <div
+            ref={
+              messagesEndRef
+            }
+          />
         </div>
 
         <div className="message-input">
 
-         <input
-           type="text"
-             placeholder="Type a message..."
-               value={message}
-                 onChange={(e) =>
-                   setMessage(e.target.value)
-  }
-      onKeyDown={(e) => {
-         if (e.key === "Enter") {
-          sendMessage();
- }
-}}
-/>
+          <input
+            type="text"
+            placeholder="Type a message..."
+            value={message}
+            onChange={(
+              e
+            ) =>
+              setMessage(
+                e.target.value
+              )
+            }
+            onKeyDown={(
+              e
+            ) => {
+              if (
+                e.key ===
+                "Enter"
+              ) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+          />
 
           <button
+            className="send-btn"
             onClick={
               sendMessage
-              
             }
           >
-            Send
+            ➜
           </button>
 
         </div>
 
       </div>
+
     </div>
   );
 }
