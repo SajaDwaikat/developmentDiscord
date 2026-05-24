@@ -1,23 +1,9 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-} from "react";
-
-import {
-  useNavigate,
-} from "react-router-dom";
-
+import {useState,useEffect,useRef,} from "react";
+import {useNavigate,} from "react-router-dom";
 import api from "../services/api";
 import socket from "../socket";
-
 import "../styles/chat.css";
-
-import {
-  FaComments,
-  FaDesktop,
-  FaCode,
-} from "react-icons/fa";
+import {FaComments,FaDesktop,FaCode,} from "react-icons/fa";
 
 function Chat() {
   const navigate = useNavigate();
@@ -364,19 +350,6 @@ function Chat() {
             }
           />
         </div>
-
-
-     
-
- 
-
-
-
-
- 
-
-  
-
 
         <div className="message-input">
 
