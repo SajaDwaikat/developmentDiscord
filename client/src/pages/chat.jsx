@@ -365,6 +365,19 @@ function Chat() {
           />
         </div>
 
+
+     
+
+ 
+
+
+
+
+ 
+
+  
+
+
         <div className="message-input">
 
           <input
